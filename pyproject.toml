@@ -5,6 +5,8 @@ description = ""
 authors = ["Łukasz Kopociński <lkopocinski@gmail.com>"]
 readme = "README.md"
 
+packages = [{ include = "asr_app", from = "src" }]
+
 [tool.poetry.dependencies]
 python = "^3.11"
 gradio = "^4.32.0"
