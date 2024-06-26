@@ -1,0 +1,1 @@
+# Simple Application for Automatic Speech Recognition using Whisper AI

@@ -1,47 +1,15 @@
 from pathlib import Path
-from tkinter import Tk, filedialog
+
 from typing import Union
 
 import gradio as gr
 import pandas as pd
 import whisper
 
-import settings as st
-from progress import ProgressListener, create_progress_listener_handle
-
-
-def on_browse_dirs():
-    root = Tk()
-    root.attributes("-topmost", True)
-    root.focus_force()
-    root.withdraw()
-
-    dir_path = filedialog.askdirectory(
-        initialdir=st.INITIAL_BROWSE_DIRS,
-    )
-
-    root.destroy()
-
-    return dir_path
-
-
-def on_browse_files():
-    root = Tk()
-    root.attributes("-topmost", True)
-    root.focus_force()
-    root.withdraw()
-
-    audio_files_ext = ('*.flac', '*.m4a', '*.mp3', '*.mp4', '*.mpeg',
-                       '*.mpga', '*.oga', '*.ogg', '*.wav', '*.webm')
-    file_paths = filedialog.askopenfilenames(
-        initialdir=st.INITIAL_BROWSE_FILE,
-        filetypes=(("Audio files", audio_files_ext),)
-    )
-    file_paths = "\n".join(file_paths)
-
-    root.destroy()
-
-    return file_paths
+from settings import settings
+from asr_app.io import browse_audio_files_str, browse_dir
+from asr_app.progress import ProgressListener, create_progress_listener_handle
+import texts as t
 
 
 def on_transcribe(files_paths: str, output_dir: str, model_name: str, progress=gr.Progress()):
@@ -81,51 +49,51 @@ def on_transcribe(files_paths: str, output_dir: str, model_name: str, progress=g
     return df
 
 
-with gr.Blocks(title=st.TITLE) as demo:
+with gr.Blocks(title=t.title) as demo:
     with gr.Row():
         with gr.Column(scale=2):
-            menu_header = gr.Markdown("""# Menu""")
+            menu_header = gr.Markdown(t.menu_header)
 
-            with gr.Accordion(label="Pliki do transkrypcji:", open=True):
+            with gr.Accordion(label=t.files_label, open=True):
                 input_paths = gr.Markdown()
                 browse_button = gr.Button(
-                    value="Wybierz pliki",
+                    value=t.browse_files_btn,
                     variant="secondary",
                 )
                 browse_button.click(
-                    on_browse_files,
+                    browse_audio_files_str,
                     outputs=input_paths,
                     show_progress="hidden",
                 )
 
-            with gr.Accordion(label="Folder do zapisu:", open=True):
+            with gr.Accordion(label=t.dir_label, open=True):
                 output_dir = gr.Markdown()
                 browse_button_dir = gr.Button(
-                    value="Wybierz folder",
+                    value=t.browse_dir_btn,
                     variant="secondary",
                 )
                 browse_button_dir.click(
-                    on_browse_dirs,
+                    browse_dir,
                     outputs=output_dir,
                     show_progress="hidden",
                 )
 
             model_dropdown = gr.Dropdown(
-                label="Model",
-                choices=['base', 'small', 'medium', 'large'],
-                value='small',
+                label=t.model_dropdown_label,
+                choices=settings.whisper_models_names,
+                value=settings.whisper_default_model,
             )
 
             transcribe_button = gr.Button(
-                value="Wykonaj transkrypcję",
+                value=t.transcribe_btn,
                 variant="primary",
                 min_width=1,
             )
 
         with gr.Column(scale=5):
-            header = gr.Markdown("""# Wyniki""")
+            header = gr.Markdown(t.results_header)
             output_values = gr.DataFrame(
-                headers=['Plik audio', 'Plik tekstowy'],
+                headers=t.results_table_header,
                 col_count=(2, "fixed"),
             )
 
@@ -135,5 +103,6 @@ with gr.Blocks(title=st.TITLE) as demo:
         outputs=output_values,
     )
 
-if __name__ == '__main__':
+
+def main():
     demo.queue().launch()

@@ -12,6 +12,11 @@ python = "^3.11"
 gradio = "^4.32.0"
 click = "^8.1.7"
 openai-whisper = "^20231117"
+pydantic-settings = "^2.3.4"
+pydantic = "^2.7.4"
+
+[tool.poetry.scripts]
+run-asr-app = 'asr_app.app:main'
 
 
 [build-system]
