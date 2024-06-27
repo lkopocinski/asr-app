@@ -25,7 +25,8 @@ def load_model(model_name: str, progress: gr.Progress) -> Whisper:
 
 
 def on_transcribe(files_paths: str, save_dir: str, model_name: str, progress=gr.Progress()):
-    files_paths = [Path(path) for path in files_paths.split('\n')]
+    if files_paths:
+        files_paths = [Path(path) for path in files_paths.split('\n')]
 
     class FileProgressListener(ProgressListener):
         def __init__(self, file_path: Path):
@@ -69,6 +70,13 @@ def get_save_path(save_dir: str, file_path: Path) -> Path:
     return (save_dir / file_path.name).with_suffix(".txt")
 
 
+def change_describe_button(text: str) -> gr.Button:
+    if text.strip() == '':
+        return gr.Button(value=t.transcribe_btn, variant="primary", min_width=1, interactive=False)
+    else:
+        return gr.Button(value=t.transcribe_btn, variant="primary", min_width=1, interactive=True)
+
+
 with gr.Blocks(title=t.title) as demo:
     with gr.Row():
         with gr.Column(scale=2):
@@ -103,12 +111,13 @@ with gr.Blocks(title=t.title) as demo:
                 choices=settings.whisper_models_names,
                 value=settings.whisper_default_model,
             )
-
             transcribe_button = gr.Button(
                 value=t.transcribe_btn,
                 variant="primary",
                 min_width=1,
             )
+
+            input_paths.change(change_describe_button, inputs=input_paths, outputs=transcribe_button)
 
         with gr.Column(scale=5):
             header = gr.Markdown(t.results_header)
