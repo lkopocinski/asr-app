@@ -1,6 +1,6 @@
 from tkinter import Tk, filedialog
 
-from settings import settings
+from asr_app.settings import settings
 
 
 def browse_dir() -> str:

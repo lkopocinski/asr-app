@@ -1,24 +1,34 @@
+import random
 from pathlib import Path
-
 from typing import Union
 
 import gradio as gr
 import pandas as pd
 import whisper
+from whisper import Whisper
 
-from settings import settings
+import asr_app.texts as t
 from asr_app.io import browse_audio_files_str, browse_dir
-from asr_app.progress import ProgressListener, create_progress_listener_handle
-import texts as t
+from asr_app.progress import ProgressListener, progress_listener_handle
+from asr_app.settings import settings
 
 
-def on_transcribe(files_paths: str, output_dir: str, model_name: str, progress=gr.Progress()):
-    progress(progress=0.33, desc=f"Loading model: {model_name}")
+def load_model(model_name: str, progress: gr.Progress) -> Whisper:
+    initial_progress = random.uniform(0.25, 0.35)
+    progress(progress=initial_progress, desc=f"{t.loading_model} {model_name}")
+
     model = whisper.load_model(model_name)
-    progress(progress=1, desc=f"Model {model_name} loaded.")
+
+    progress(progress=1, desc=f"{t.loaded_model} {model_name}.")
+
+    return model
+
+
+def on_transcribe(files_paths: str, save_dir: str, model_name: str, progress=gr.Progress()):
+    files_paths = [Path(path) for path in files_paths.split('\n')]
 
     class FileProgressListener(ProgressListener):
-        def __init__(self, file_path: str):
+        def __init__(self, file_path: Path):
             self.progress_description = f"Trwa przetwarzanie pliku: {file_path}"
             self.finished_message = f"Zakończono przetwarzanie pliku: {file_path}"
 
@@ -28,25 +38,35 @@ def on_transcribe(files_paths: str, output_dir: str, model_name: str, progress=g
         def on_finished(self):
             gr.Info(message=self.finished_message)
 
-    results = []
+    model = load_model(model_name, progress)
 
-    files_paths = files_paths.split('\n')
+    results = []
     for path in files_paths:
-        track_listener = FileProgressListener(file_path=path)
-        with create_progress_listener_handle(track_listener):
+
+        if not path.exists():
+            results.append((str(path), t.file_not_exist))
+            continue
+
+        listener = FileProgressListener(file_path=path)
+        with progress_listener_handle(listener):
             result = model.transcribe(str(path), verbose=False)
 
-        if Path(output_dir).is_dir():
-            save_path = Path(output_dir) / Path(path).name
-            save_path = save_path.with_suffix(".txt")
-        else:
-            save_path = Path(path).with_suffix(".txt")
-
+        save_path = get_save_path(save_dir, path)
         save_path.write_text(result["text"])
+
         results.append((str(path), str(save_path)))
 
     df = pd.DataFrame(results, columns=['Plik audio', 'Plik tekstowy'])
     return df
+
+
+def get_save_path(save_dir: str, file_path: Path) -> Path:
+    if save_dir and Path(save_dir).is_dir():
+        save_dir = Path(save_dir)
+    else:
+        save_dir = file_path.parent
+
+    return (save_dir / file_path.name).with_suffix(".txt")
 
 
 with gr.Blocks(title=t.title) as demo:
@@ -106,3 +126,7 @@ with gr.Blocks(title=t.title) as demo:
 
 def main():
     demo.queue().launch()
+
+
+if __name__ == '__main__':
+    main()

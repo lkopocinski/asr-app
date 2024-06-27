@@ -13,6 +13,7 @@ class _CustomProgressBar(tqdm.tqdm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._current = self.n
+        self.update(n=0)
 
     def update(self, n=1):
         super().update(n)
@@ -79,5 +80,5 @@ def unregister_thread_local_progress_listener(progress_listener: ProgressListene
         listeners.remove(progress_listener)
 
 
-def create_progress_listener_handle(progress_listener: ProgressListener):
+def progress_listener_handle(progress_listener: ProgressListener):
     return ProgressListenerHandle(progress_listener)
